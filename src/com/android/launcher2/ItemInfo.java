@@ -16,12 +16,13 @@
 
 package com.android.launcher2;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 import android.content.ContentValues;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.util.Log;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
  * Represents an item in the launcher.
@@ -77,6 +78,15 @@ class ItemInfo {
     int spanY = 1;
 
     /**
+     * Indicates the minimum X cell span.
+     */
+    int minSpanX = 1;
+
+    /**
+     * Indicates the minimum Y cell span.
+     */
+    int minSpanY = 1;
+    /**
      * Indicates whether the item is a gesture.
      */
     boolean isGesture = false;
@@ -98,6 +108,21 @@ class ItemInfo {
         screen = info.screen;
         itemType = info.itemType;
         container = info.container;
+    }
+
+    /** Returns the package name that the intent will resolve to, or an empty string if
+     *  none exists. */
+    static String getPackageName(Intent intent) {
+        if (intent != null) {
+            String packageName = intent.getPackage();
+            if (packageName == null && intent.getComponent() != null) {
+                packageName = intent.getComponent().getPackageName();
+            }
+            if (packageName != null) {
+                return packageName;
+            }
+        }
+        return "";
     }
 
     /**

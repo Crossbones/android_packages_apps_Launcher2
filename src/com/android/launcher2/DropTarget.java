@@ -16,13 +16,18 @@
 
 package com.android.launcher2;
 
+import android.content.Context;
+import android.graphics.PointF;
 import android.graphics.Rect;
+import android.util.Log;
 
 /**
  * Interface defining an object that can receive a drag.
  *
  */
 public interface DropTarget {
+
+    public static final String TAG = "DropTarget";
 
     class DragObject {
         public int x = -1;
@@ -55,7 +60,47 @@ public interface DropTarget {
         /** Indicates that the drag operation was cancelled */
         public boolean cancelled = false;
 
+        /** Defers removing the DragView from the DragLayer until after the drop animation. */
+        public boolean deferDragViewCleanupPostAnimation = true;
+
         public DragObject() {
+        }
+    }
+
+    public static class DragEnforcer implements DragController.DragListener {
+        int dragParity = 0;
+
+        public DragEnforcer(Context context) {
+            Launcher launcher = (Launcher) context;
+            launcher.getDragController().addDragListener(this);
+        }
+
+        void onDragEnter() {
+            dragParity++;
+            if (dragParity != 1) {
+                Log.e(TAG, "onDragEnter: Drag contract violated: " + dragParity);
+            }
+        }
+
+        void onDragExit() {
+            dragParity--;
+            if (dragParity != 0) {
+                Log.e(TAG, "onDragExit: Drag contract violated: " + dragParity);
+            }
+        }
+
+        @Override
+        public void onDragStart(DragSource source, Object info, int dragAction) {
+            if (dragParity != 0) {
+                Log.e(TAG, "onDragEnter: Drag contract violated: " + dragParity);
+            }
+        }
+
+        @Override
+        public void onDragEnd() {
+            if (dragParity != 0) {
+                Log.e(TAG, "onDragExit: Drag contract violated: " + dragParity);
+            }
         }
     }
 
@@ -87,6 +132,13 @@ public interface DropTarget {
     void onDragOver(DragObject dragObject);
 
     void onDragExit(DragObject dragObject);
+
+    /**
+     * Handle an object being dropped as a result of flinging to delete and will be called in place
+     * of onDrop().  (This is only called on objects that are set as the DragController's
+     * fling-to-delete target.
+     */
+    void onFlingToDelete(DragObject dragObject, int x, int y, PointF vec);
 
     /**
      * Allows a DropTarget to delegate drag and drop events to another object.

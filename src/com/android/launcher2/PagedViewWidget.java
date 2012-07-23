@@ -16,20 +16,14 @@
 
 package com.android.launcher2;
 
-import android.animation.ObjectAnimator;
 import android.appwidget.AppWidgetProviderInfo;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.RectF;
 import android.util.AttributeSet;
-import android.view.KeyEvent;
 import android.view.MotionEvent;
-import android.widget.Checkable;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -39,27 +33,17 @@ import com.android.launcher.R;
 /**
  * The linear layout used strictly for the widget/wallpaper tab of the customization tray
  */
-public class PagedViewWidget extends LinearLayout implements Checkable {
+public class PagedViewWidget extends LinearLayout {
     static final String TAG = "PagedViewWidgetLayout";
 
     private static boolean sDeletePreviewsWhenDetachedFromWindow = true;
 
-    private final Paint mPaint = new Paint();
-    private Bitmap mHolographicOutline;
-    private HolographicOutlineHelper mHolographicOutlineHelper;
-    private ImageView mPreviewImageView;
-    private final RectF mTmpScaleRect = new RectF();
-
     private String mDimensionsFormatString;
-
-    private int mAlpha = 255;
-    private int mHolographicAlpha;
-
-    private boolean mIsChecked;
-    private ObjectAnimator mCheckedAlphaAnimator;
-    private float mCheckedAlpha = 1.0f;
-    private int mCheckedFadeInDuration;
-    private int mCheckedFadeOutDuration;
+    CheckForShortPress mPendingCheckForShortPress = null;
+    ShortPressListener mShortPressListener = null;
+    boolean mShortPressTriggered = false;
+    static PagedViewWidget sShortpressTarget = null;
+    boolean mIsAppWidget;
 
     public PagedViewWidget(Context context) {
         this(context, null);
@@ -72,16 +56,7 @@ public class PagedViewWidget extends LinearLayout implements Checkable {
     public PagedViewWidget(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
 
-        // Set up fade in/out constants
         final Resources r = context.getResources();
-        final int alpha = r.getInteger(R.integer.config_dragAppsCustomizeIconFadeAlpha);
-        if (alpha > 0) {
-            mCheckedAlpha = r.getInteger(R.integer.config_dragAppsCustomizeIconFadeAlpha) / 256.0f;
-            mCheckedFadeInDuration =
-                r.getInteger(R.integer.config_dragAppsCustomizeIconFadeInDuration);
-            mCheckedFadeOutDuration =
-                r.getInteger(R.integer.config_dragAppsCustomizeIconFadeOutDuration);
-        }
         mDimensionsFormatString = r.getString(R.string.widget_dims_format);
 
         setWillNotDraw(false);
@@ -109,29 +84,28 @@ public class PagedViewWidget extends LinearLayout implements Checkable {
     }
 
     public void applyFromAppWidgetProviderInfo(AppWidgetProviderInfo info,
-            int maxWidth, int[] cellSpan, HolographicOutlineHelper holoOutlineHelper) {
-        mHolographicOutlineHelper = holoOutlineHelper;
+            int maxWidth, int[] cellSpan) {
+        mIsAppWidget = true;
         final ImageView image = (ImageView) findViewById(R.id.widget_preview);
         if (maxWidth > -1) {
             image.setMaxWidth(maxWidth);
         }
         image.setContentDescription(info.label);
-        mPreviewImageView = image;
         final TextView name = (TextView) findViewById(R.id.widget_name);
         name.setText(info.label);
         final TextView dims = (TextView) findViewById(R.id.widget_dims);
         if (dims != null) {
-            dims.setText(String.format(mDimensionsFormatString, cellSpan[0], cellSpan[1]));
+            int hSpan = Math.min(cellSpan[0], LauncherModel.getCellCountX());
+            int vSpan = Math.min(cellSpan[1], LauncherModel.getCellCountY());
+            dims.setText(String.format(mDimensionsFormatString, hSpan, vSpan));
         }
     }
 
-    public void applyFromResolveInfo(PackageManager pm, ResolveInfo info,
-            HolographicOutlineHelper holoOutlineHelper) {
-        mHolographicOutlineHelper = holoOutlineHelper;
+    public void applyFromResolveInfo(PackageManager pm, ResolveInfo info) {
+        mIsAppWidget = false;
         CharSequence label = info.loadLabel(pm);
         final ImageView image = (ImageView) findViewById(R.id.widget_preview);
         image.setContentDescription(label);
-        mPreviewImageView = image;
         final TextView name = (TextView) findViewById(R.id.widget_name);
         name.setText(label);
         final TextView dims = (TextView) findViewById(R.id.widget_dims);
@@ -144,28 +118,99 @@ public class PagedViewWidget extends LinearLayout implements Checkable {
         final ImageView i = (ImageView) findViewById(R.id.widget_preview);
         int[] maxSize = new int[2];
         maxSize[0] = i.getWidth() - i.getPaddingLeft() - i.getPaddingRight();
-        maxSize[1] = i.getHeight() - i.getPaddingBottom() - i.getPaddingTop();
+        maxSize[1] = i.getHeight() - i.getPaddingTop();
         return maxSize;
     }
 
     void applyPreview(FastBitmapDrawable preview, int index) {
         final PagedViewWidgetImageView image =
-                (PagedViewWidgetImageView) findViewById(R.id.widget_preview);
+            (PagedViewWidgetImageView) findViewById(R.id.widget_preview);
         if (preview != null) {
             image.mAllowRequestLayout = false;
             image.setImageDrawable(preview);
+            if (mIsAppWidget) {
+                // center horizontally
+                int[] imageSize = getPreviewSize();
+                int centerAmount = (imageSize[0] - preview.getIntrinsicWidth()) / 2;
+                image.setPadding(image.getPaddingLeft() + centerAmount,
+                        image.getPaddingTop(),
+                        image.getPaddingRight(),
+                        image.getPaddingBottom());
+            }
             image.setAlpha(1f);
             image.mAllowRequestLayout = true;
         }
     }
 
-    public void setHolographicOutline(Bitmap holoOutline) {
-        mHolographicOutline = holoOutline;
-        invalidate();
+    void setShortPressListener(ShortPressListener listener) {
+        mShortPressListener = listener;
+    }
+
+    interface ShortPressListener {
+        void onShortPress(View v);
+        void cleanUpShortPress(View v);
+    }
+
+    class CheckForShortPress implements Runnable {
+        public void run() {
+            if (sShortpressTarget != null) return;
+            if (mShortPressListener != null) {
+                mShortPressListener.onShortPress(PagedViewWidget.this);
+                sShortpressTarget = PagedViewWidget.this;
+            }
+            mShortPressTriggered = true;
+        }
+    }
+
+    private void checkForShortPress() {
+        if (sShortpressTarget != null) return;
+        if (mPendingCheckForShortPress == null) {
+            mPendingCheckForShortPress = new CheckForShortPress();
+        }
+        postDelayed(mPendingCheckForShortPress, 120);
+    }
+
+    /**
+     * Remove the longpress detection timer.
+     */
+    private void removeShortPressCallback() {
+        if (mPendingCheckForShortPress != null) {
+          removeCallbacks(mPendingCheckForShortPress);
+        }
+    }
+
+    private void cleanUpShortPress() {
+        removeShortPressCallback();
+        if (mShortPressTriggered) {
+            if (mShortPressListener != null) {
+                mShortPressListener.cleanUpShortPress(PagedViewWidget.this);
+            }
+            mShortPressTriggered = false;
+        }
+    }
+
+    static void resetShortPressTarget() {
+        sShortpressTarget = null;
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        super.onTouchEvent(event);
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_UP:
+                cleanUpShortPress();
+                break;
+            case MotionEvent.ACTION_DOWN:
+                checkForShortPress();
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                cleanUpShortPress();
+                break;
+            case MotionEvent.ACTION_MOVE:
+                break;
+        }
+
         // We eat up the touch events here, since the PagedView (which uses the same swiping
         // touch code as Workspace previously) uses onInterceptTouchEvent() to determine when
         // the user is scrolling between pages.  This means that if the pages themselves don't
@@ -173,97 +218,6 @@ public class PagedViewWidget extends LinearLayout implements Checkable {
         // onTouchEvent() handling will prevent further intercept touch events from being called
         // (it's the same view in that case).  This is not ideal, but to prevent more changes,
         // we just always mark the touch event as handled.
-        return super.onTouchEvent(event) || true;
-    }
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        if (mAlpha > 0) {
-            super.onDraw(canvas);
-        }
-
-        // draw any blended overlays
-        if (mHolographicOutline != null && mHolographicAlpha > 0) {
-            // Calculate how much to scale the holographic preview
-            mTmpScaleRect.set(0,0,1,1);
-            mPreviewImageView.getImageMatrix().mapRect(mTmpScaleRect);
-
-            mPaint.setAlpha(mHolographicAlpha);
-            canvas.save();
-            canvas.scale(mTmpScaleRect.right, mTmpScaleRect.bottom);
-            canvas.drawBitmap(mHolographicOutline, mPreviewImageView.getLeft(),
-                    mPreviewImageView.getTop(), mPaint);
-            canvas.restore();
-        }
-    }
-
-    @Override
-    protected boolean onSetAlpha(int alpha) {
         return true;
-    }
-
-    private void setChildrenAlpha(float alpha) {
-        final int childCount = getChildCount();
-        for (int i = 0; i < childCount; i++) {
-            getChildAt(i).setAlpha(alpha);
-        }
-    }
-    @Override
-    public void setAlpha(float alpha) {
-        final float viewAlpha = mHolographicOutlineHelper.viewAlphaInterpolator(alpha);
-        final float holographicAlpha = mHolographicOutlineHelper.highlightAlphaInterpolator(alpha);
-        int newViewAlpha = (int) (viewAlpha * 255);
-        int newHolographicAlpha = (int) (holographicAlpha * 255);
-        if ((mAlpha != newViewAlpha) || (mHolographicAlpha != newHolographicAlpha)) {
-            mAlpha = newViewAlpha;
-            mHolographicAlpha = newHolographicAlpha;
-            setChildrenAlpha(viewAlpha);
-            super.setAlpha(viewAlpha);
-        }
-    }
-
-    void setChecked(boolean checked, boolean animate) {
-        if (mIsChecked != checked) {
-            mIsChecked = checked;
-
-            float alpha;
-            int duration;
-            if (mIsChecked) {
-                alpha = mCheckedAlpha;
-                duration = mCheckedFadeInDuration;
-            } else {
-                alpha = 1.0f;
-                duration = mCheckedFadeOutDuration;
-            }
-
-            // Initialize the animator
-            if (mCheckedAlphaAnimator != null) {
-                mCheckedAlphaAnimator.cancel();
-            }
-            if (animate) {
-                mCheckedAlphaAnimator = ObjectAnimator.ofFloat(this, "alpha", getAlpha(), alpha);
-                mCheckedAlphaAnimator.setDuration(duration);
-                mCheckedAlphaAnimator.start();
-            } else {
-                setAlpha(alpha);
-            }
-
-            invalidate();
-        }
-    }
-
-    @Override
-    public void setChecked(boolean checked) {
-        setChecked(checked, true);
-    }
-
-    @Override
-    public boolean isChecked() {
-        return mIsChecked;
-    }
-
-    @Override
-    public void toggle() {
-        setChecked(!mIsChecked);
     }
 }

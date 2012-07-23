@@ -19,6 +19,7 @@
     xmlns:launcher="http://schemas.android.com/apk/res/com.android.launcher"
 
     android:id="@+id/drag_layer"
+    android:background="@drawable/workspace_bg"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -44,11 +45,13 @@
         android:id="@+id/workspace"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="@dimen/qsb_bar_height_inset"
-        android:paddingBottom="@dimen/button_bar_height"
+        android:paddingLeft="@dimen/workspace_left_padding"
+        android:paddingRight="@dimen/workspace_right_padding"
+        android:paddingTop="@dimen/workspace_top_padding"
+        android:paddingBottom="@dimen/workspace_bottom_padding"
         launcher:defaultScreen="2"
-        launcher:cellCountX="4"
-        launcher:cellCountY="4"
+        launcher:cellCountX="@integer/cell_count_x"
+        launcher:cellCountY="@integer/cell_count_y"
         launcher:pageSpacing="@dimen/workspace_page_spacing"
         launcher:scrollIndicatorPaddingLeft="@dimen/workspace_divider_padding_left"
         launcher:scrollIndicatorPaddingRight="@dimen/workspace_divider_padding_right">
@@ -69,6 +72,16 @@
     <include
         android:id="@+id/qsb_bar"
         layout="@layout/qsb_bar" />
+
+    <com.android.launcher2.DrawableStateProxyView
+        android:id="@+id/voice_button_proxy"
+        android:layout_width="80dp"
+        android:layout_height="@dimen/qsb_bar_height"
+        android:layout_gravity="top|right"
+        android:clickable="true"
+        android:onClick="onClickVoiceButton"
+        android:importantForAccessibility="no"
+        launcher:sourceViewId="@+id/voice_button" />
 
     <include layout="@layout/apps_customize_pane"
         android:id="@+id/apps_customize_pane"

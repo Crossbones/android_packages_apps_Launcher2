@@ -28,14 +28,15 @@ import android.widget.FrameLayout;
 import com.android.launcher.R;
 
 public class Hotseat extends FrameLayout {
+    @SuppressWarnings("unused")
     private static final String TAG = "Hotseat";
-    private static final int sAllAppsButtonRank = 2; // In the middle of the dock
 
     private Launcher mLauncher;
     private CellLayout mContent;
 
     private int mCellCountX;
     private int mCellCountY;
+    private int mAllAppsButtonRank;
     private boolean mIsLandscape;
 
     public Hotseat(Context context) {
@@ -53,6 +54,7 @@ public class Hotseat extends FrameLayout {
                 R.styleable.Hotseat, defStyle, 0);
         mCellCountX = a.getInt(R.styleable.Hotseat_cellCountX, -1);
         mCellCountY = a.getInt(R.styleable.Hotseat_cellCountY, -1);
+        mAllAppsButtonRank = context.getResources().getInteger(R.integer.hotseat_all_apps_index);
         mIsLandscape = context.getResources().getConfiguration().orientation ==
             Configuration.ORIENTATION_LANDSCAPE;
     }
@@ -77,8 +79,8 @@ public class Hotseat extends FrameLayout {
     int getCellYFromOrder(int rank) {
         return mIsLandscape ? (mContent.getCountY() - (rank + 1)) : 0;
     }
-    public static boolean isAllAppsButtonRank(int rank) {
-        return rank == sAllAppsButtonRank;
+    public boolean isAllAppsButtonRank(int rank) {
+        return rank == mAllAppsButtonRank;
     }
 
     @Override
@@ -88,6 +90,7 @@ public class Hotseat extends FrameLayout {
         if (mCellCountY < 0) mCellCountY = LauncherModel.getCellCountY();
         mContent = (CellLayout) findViewById(R.id.layout);
         mContent.setGridSize(mCellCountX, mCellCountY);
+        mContent.setIsHotseat(true);
 
         resetLayout();
     }
@@ -102,7 +105,6 @@ public class Hotseat extends FrameLayout {
                 inflater.inflate(R.layout.application, mContent, false);
         allAppsButton.setCompoundDrawablesWithIntrinsicBounds(null,
                 context.getResources().getDrawable(R.drawable.all_apps_button_icon), null, null);
-        // allAppsButton.setText(context.getString(R.string.all_apps_button_label));
         allAppsButton.setContentDescription(context.getString(R.string.all_apps_button_label));
         allAppsButton.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -126,9 +128,10 @@ public class Hotseat extends FrameLayout {
 
         // Note: We do this to ensure that the hotseat is always laid out in the orientation of
         // the hotseat in order regardless of which orientation they were added
-        int x = getCellXFromOrder(sAllAppsButtonRank);
-        int y = getCellYFromOrder(sAllAppsButtonRank);
-        mContent.addViewToCellLayout(allAppsButton, -1, 0, new CellLayout.LayoutParams(x,y,1,1),
-                true);
+        int x = getCellXFromOrder(mAllAppsButtonRank);
+        int y = getCellYFromOrder(mAllAppsButtonRank);
+        CellLayout.LayoutParams lp = new CellLayout.LayoutParams(x,y,1,1);
+        lp.canReorder = false;
+        mContent.addViewToCellLayout(allAppsButton, -1, 0, lp, true);
     }
 }

@@ -20,6 +20,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="application_name" msgid="8424725141379931883">"Kizinduzi"</string>
+    <string name="home" msgid="5921706419368316758">"Nyumbani"</string>
     <string name="uid_name" msgid="3371120195364560632">"Programu Kuu za Android"</string>
     <string name="folder_name" msgid="8551881338202938211"></string>
     <string name="chooser_wallpaper" msgid="6063168087625352235">"Chagua mandhari kutoka"</string>
@@ -29,7 +30,7 @@
     <string name="widgets_tab_label" msgid="9145860100000983599">"Wijeti"</string>
     <string name="long_press_widget_to_add" msgid="7395697462851217506">"Gusa &amp; ushikilie ili kuteua wijeti."</string>
     <string name="market" msgid="2652226429823445833">"Duka"</string>
-    <string name="external_drop_widget_error" msgid="127440783198670829">"Hakuweza kuachilia kipengee kwenye skrini hii ya Nyumbani."</string>
+    <string name="external_drop_widget_error" msgid="2285187188524172774">"Haikuweza kudondosha kipengee kwenye skrini hii ya Nyumbani."</string>
     <string name="external_drop_widget_pick_title" msgid="7040647073452295370">"Chagua wijeti ili uunde"</string>
     <string name="rename_folder_label" msgid="5646236631298452787">"Jina la folda"</string>
     <string name="rename_folder_title" msgid="4544573104191526550">"Ipe jina jipya folda"</string>
@@ -40,12 +41,14 @@
     <string name="group_shortcuts" msgid="9133529424900391877">"Njia za mkato"</string>
     <string name="group_widgets" msgid="6704978494073105844">"Wijeti"</string>
     <string name="group_wallpapers" msgid="1568191644272224858">"Mandhari"</string>
+    <string name="completely_out_of_space" msgid="1759078539443491182">"Hakuna nafasi zaidi kwenye skrini zako za Nyumbani."</string>
     <string name="out_of_space" msgid="8365249326091984698">"Hakuna nafasi katika skrini hii ya nyumbani."</string>
+    <string name="hotseat_out_of_space" msgid="6304886797358479361">"Hakuna nafasi zaidi kwenye eneo kali."</string>
     <string name="invalid_hotseat_item" msgid="6545340627805449250">"Wijeti hii ni kubwa zaidi kwa hotseat."</string>
     <string name="shortcut_installed" msgid="7071557296331322355">"Njia ya mkato ya \"<xliff:g id="NAME">%s</xliff:g>\" imeundwa."</string>
     <string name="shortcut_uninstalled" msgid="2129499669449749995">"Njia ya mkato ya \"<xliff:g id="NAME">%s</xliff:g>\" iliondolewa."</string>
     <string name="shortcut_duplicate" msgid="4757756326465060694">"Njia ya mkato ya \"<xliff:g id="NAME">%s</xliff:g>\" tayari ipo."</string>
-    <string name="title_select_shortcut" msgid="2858897527672831763">"Chagua njia ya mkato"</string>
+    <string name="title_select_shortcut" msgid="1873670208166882222">"Chagua njia ya mkato"</string>
     <string name="title_select_application" msgid="1793455815754848652">"Chagua programu"</string>
     <string name="all_apps_button_label" msgid="2578400570124163469">"Programu"</string>
     <string name="all_apps_home_button_label" msgid="1022222300329398558">"Nyumbani"</string>
@@ -75,17 +78,20 @@
     <string name="permlab_install_shortcut" msgid="1201690825493376489">"njia mikato za moja kwa moja"</string>
     <string name="permdesc_install_shortcut" msgid="8634424803272077038">"Huruhusu programu kuongeza njia za mkato bila mtumiaji kuhusika."</string>
     <string name="permlab_uninstall_shortcut" msgid="7696645932555926449">"Sakunua mikato"</string>
-    <string name="permdesc_uninstall_shortcut" msgid="7811223557950931994">"Huruhusu programu kuondoa njia za mkato bila mtumiaji kuhusika."</string>
+    <string name="permdesc_uninstall_shortcut" msgid="274355570620220977">"Inaruhusu programu kuondoa njia za mikato bila juhudi za mtumiaji."</string>
     <string name="permlab_read_settings" msgid="3452408290738106747">"soma mipangilio ya Nyumbani na njia za mkato"</string>
-    <string name="permdesc_read_settings" msgid="1836104524215167383">"Huruhusu programu kusoma mipangilio na njia za mkato katika Nyumbani."</string>
+    <string name="permdesc_read_settings" msgid="5788109303585403679">"Inaruhusu programu kusoma mipangilio na njia za mikato katika Nyumbani."</string>
     <string name="permlab_write_settings" msgid="1360567537236705628">"andika mipangilio ya Nyumbani na njia za mkato"</string>
-    <string name="permdesc_write_settings" msgid="6763846563231494591">"Huruhusu programu kubadilisha mipangilio na njia za mkato katika Nyumbani."</string>
+    <string name="permdesc_write_settings" msgid="8530105489115785531">"Huruhusu programu kubadilisha mipangilio na njia za mkato katika Nyumbani."</string>
     <string name="gadget_error_text" msgid="8359351016167075858">"Tatizo la kupakia wijeti"</string>
     <string name="uninstall_system_app_text" msgid="6429814133777046491">"Hii ni programu ya mfumo na haiwezi kusaniduliwa."</string>
     <string name="dream_name" msgid="2847171357608437154">"Kizinduzi cha Roketi"</string>
     <string name="folder_hint_text" msgid="8633351560105748141">"Folda isiyo na jina"</string>
+    <string name="workspace_description_format" msgid="2968608205939373034">"Skrini ya nyumbani %1$d"</string>
     <string name="default_scroll_format" msgid="4057140866420001240">"Ukurasa%1$d wa %2$d"</string>
-    <string name="workspace_scroll_format" msgid="7911126267695001437">"Nafasi ya kazi %1$d ya %2$d"</string>
+    <!-- String.format failed for translation -->
+    <!-- no translation found for workspace_scroll_format (1704767047951143301) -->
+    <skip />
     <string name="apps_customize_apps_scroll_format" msgid="5494241912377704885">"Ukurasa wa programu %1$d ya %2$d"</string>
     <string name="apps_customize_widgets_scroll_format" msgid="5383009742241717437">"Ukurasa wa wijeti %1$d ya %2$d"</string>
     <string name="workspace_cling_title" msgid="738396473989890567">"Jisikie huru"</string>
@@ -97,10 +103,14 @@
     <string name="folder_cling_move_item" msgid="270598675060435169">"Kuhamisha programu, gusa na; uishikilie."</string>
     <string name="folder_cling_create_folder" msgid="8352867485656129478">"Kuunda folda mpya katika skrini yako ya nyumbani, rundika programu moja juu ya nyingine."</string>
     <string name="cling_dismiss" msgid="2780907108735868381">"Sawa"</string>
-    <string name="folder_opened" msgid="4129072635480822768">"Folda imefunguliwa,%1$d na %2$d"</string>
-    <string name="folder_tap_to_close" msgid="4076794242530255812">"Gonga ili kufunga folda"</string>
-    <string name="folder_tap_to_rename" msgid="2125528923948315223">"Gonga ili kukubali jina"</string>
+    <string name="folder_opened" msgid="1262064100943801533">"Folda imefunguliwa, <xliff:g id="WIDTH">%1$d</xliff:g> kwa <xliff:g id="HEIGHT">%2$d</xliff:g>"</string>
+    <string name="folder_tap_to_close" msgid="1335478160661137579">"Gusa ili ufunge folda"</string>
+    <string name="folder_tap_to_rename" msgid="5201612989905472442">"Gusa kuhifadhi upaji jina jipya"</string>
     <string name="folder_closed" msgid="3130534551370511932">"Folda imefungwa"</string>
-    <string name="folder_renamed" msgid="781234745487414781">"Folda imebadilishwa jina hadi %1$s"</string>
-    <string name="folder_name_format" msgid="4513766553514769310">"Folda: %1$s"</string>
+    <string name="folder_renamed" msgid="7951233572858053642">"Folda imebadilishwa jina hadi <xliff:g id="NAME">%1$s</xliff:g>"</string>
+    <string name="folder_name_format" msgid="3051680259794759037">"Folda: <xliff:g id="NAME">%1$s</xliff:g>"</string>
+    <string name="custom_workspace_cling_title_1" msgid="1433009175359948587"></string>
+    <string name="custom_workspace_cling_description_1" msgid="6875529190849858047"></string>
+    <string name="custom_workspace_cling_title_2" msgid="5516006164661020362"></string>
+    <string name="custom_workspace_cling_description_2" msgid="2758258454975288377"></string>
 </resources>

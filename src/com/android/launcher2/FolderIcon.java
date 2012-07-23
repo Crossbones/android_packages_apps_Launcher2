@@ -30,6 +30,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
@@ -52,6 +53,8 @@ public class FolderIcon extends LinearLayout implements FolderListener {
     Folder mFolder;
     FolderInfo mInfo;
     private static boolean sStaticValuesDirty = true;
+
+    private CheckLongPressHelper mLongPressHelper;
 
     // The number of icons to display in the
     private static final int NUM_ITEMS_IN_PREVIEW = 3;
@@ -95,10 +98,16 @@ public class FolderIcon extends LinearLayout implements FolderListener {
 
     public FolderIcon(Context context, AttributeSet attrs) {
         super(context, attrs);
+        init();
     }
 
     public FolderIcon(Context context) {
         super(context);
+        init();
+    }
+
+    private void init() {
+        mLongPressHelper = new CheckLongPressHelper(this);
     }
 
     public boolean isDropEnabled() {
@@ -110,8 +119,9 @@ public class FolderIcon extends LinearLayout implements FolderListener {
 
     static FolderIcon fromXml(int resId, Launcher launcher, ViewGroup group,
             FolderInfo folderInfo, IconCache iconCache) {
-
-        if (INITIAL_ITEM_ANIMATION_DURATION >= DROP_IN_ANIMATION_DURATION) {
+        @SuppressWarnings("all") // suppress dead code warning
+        final boolean error = INITIAL_ITEM_ANIMATION_DURATION >= DROP_IN_ANIMATION_DURATION;
+        if (error) {
             throw new IllegalStateException("DROP_IN_ANIMATION_DURATION must be greater than " +
                     "INITIAL_ITEM_ANIMATION_DURATION, as sequencing of adding first two items " +
                     "is dependent on this");
@@ -188,11 +198,13 @@ public class FolderIcon extends LinearLayout implements FolderListener {
             }
             mAcceptAnimator = ValueAnimator.ofFloat(0f, 1f);
             mAcceptAnimator.setDuration(CONSUMPTION_ANIMATION_DURATION);
+
+            final int previewSize = sPreviewSize;
             mAcceptAnimator.addUpdateListener(new AnimatorUpdateListener() {
                 public void onAnimationUpdate(ValueAnimator animation) {
                     final float percent = (Float) animation.getAnimatedValue();
-                    mOuterRingSize = (1 + percent * OUTER_RING_GROWTH_FACTOR) * sPreviewSize;
-                    mInnerRingSize = (1 + percent * INNER_RING_GROWTH_FACTOR) * sPreviewSize;
+                    mOuterRingSize = (1 + percent * OUTER_RING_GROWTH_FACTOR) * previewSize;
+                    mInnerRingSize = (1 + percent * INNER_RING_GROWTH_FACTOR) * previewSize;
                     if (mCellLayout != null) {
                         mCellLayout.invalidate();
                     }
@@ -215,11 +227,13 @@ public class FolderIcon extends LinearLayout implements FolderListener {
             }
             mNeutralAnimator = ValueAnimator.ofFloat(0f, 1f);
             mNeutralAnimator.setDuration(CONSUMPTION_ANIMATION_DURATION);
+
+            final int previewSize = sPreviewSize;
             mNeutralAnimator.addUpdateListener(new AnimatorUpdateListener() {
                 public void onAnimationUpdate(ValueAnimator animation) {
                     final float percent = (Float) animation.getAnimatedValue();
-                    mOuterRingSize = (1 + (1 - percent) * OUTER_RING_GROWTH_FACTOR) * sPreviewSize;
-                    mInnerRingSize = (1 + (1 - percent) * INNER_RING_GROWTH_FACTOR) * sPreviewSize;
+                    mOuterRingSize = (1 + (1 - percent) * OUTER_RING_GROWTH_FACTOR) * previewSize;
+                    mInnerRingSize = (1 + (1 - percent) * INNER_RING_GROWTH_FACTOR) * previewSize;
                     if (mCellLayout != null) {
                         mCellLayout.invalidate();
                     }
@@ -295,33 +309,32 @@ public class FolderIcon extends LinearLayout implements FolderListener {
     }
 
     public void performCreateAnimation(final ShortcutInfo destInfo, final View destView,
-            final ShortcutInfo srcInfo, final View srcView, Rect dstRect,
+            final ShortcutInfo srcInfo, final DragView srcView, Rect dstRect,
             float scaleRelativeToDragLayer, Runnable postAnimationRunnable) {
 
         Drawable animateDrawable = ((TextView) destView).getCompoundDrawables()[1];
         computePreviewDrawingParams(animateDrawable.getIntrinsicWidth(), destView.getMeasuredWidth());
 
         // This will animate the dragView (srcView) into the new folder
-        onDrop(srcInfo, srcView, dstRect, scaleRelativeToDragLayer, 1, postAnimationRunnable);
+        onDrop(srcInfo, srcView, dstRect, scaleRelativeToDragLayer, 1, postAnimationRunnable, null);
 
         // This will animate the first item from it's position as an icon into its
         // position as the first item in the preview
         animateFirstItem(animateDrawable, INITIAL_ITEM_ANIMATION_DURATION);
-
-        postDelayed(new Runnable() {
-            public void run() {
-                addItem(destInfo);
-            }
-        }, INITIAL_ITEM_ANIMATION_DURATION);
+        addItem(destInfo);
     }
 
     public void onDragExit(Object dragInfo) {
-        if (!willAcceptItem((ItemInfo) dragInfo)) return;
+        onDragExit();
+    }
+
+    public void onDragExit() {
         mFolderRingAnimator.animateToNaturalState();
     }
 
-    private void onDrop(final ShortcutInfo item, View animateView, Rect finalRect,
-            float scaleRelativeToDragLayer, int index, Runnable postAnimationRunnable) {
+    private void onDrop(final ShortcutInfo item, DragView animateView, Rect finalRect,
+            float scaleRelativeToDragLayer, int index, Runnable postAnimationRunnable,
+            DragObject d) {
         item.cellX = -1;
         item.cellY = -1;
 
@@ -359,10 +372,11 @@ public class FolderIcon extends LinearLayout implements FolderListener {
 
             float finalAlpha = index < NUM_ITEMS_IN_PREVIEW ? 0.5f : 0f;
 
+            float finalScale = scale * scaleRelativeToDragLayer;
             dragLayer.animateView(animateView, from, to, finalAlpha,
-                    scale * scaleRelativeToDragLayer, DROP_IN_ANIMATION_DURATION,
+                    1, 1, finalScale, finalScale, DROP_IN_ANIMATION_DURATION,
                     new DecelerateInterpolator(2), new AccelerateInterpolator(2),
-                    postAnimationRunnable, false);
+                    postAnimationRunnable, DragLayer.ANIMATION_END_DISAPPEAR, null);
             postDelayed(new Runnable() {
                 public void run() {
                     addItem(item);
@@ -382,7 +396,7 @@ public class FolderIcon extends LinearLayout implements FolderListener {
             item = (ShortcutInfo) d.dragInfo;
         }
         mFolder.notifyDrop();
-        onDrop(item, d.dragView, null, 1.0f, mInfo.contents.size(), d.postAnimationRunnable);
+        onDrop(item, d.dragView, null, 1.0f, mInfo.contents.size(), d.postAnimationRunnable, d);
     }
 
     public DropTarget getDropTargetDelegate(DragObject d) {
@@ -586,7 +600,32 @@ public class FolderIcon extends LinearLayout implements FolderListener {
 
     public void onTitleChanged(CharSequence title) {
         mFolderName.setText(title.toString());
-        setContentDescription(String.format(mContext.getString(R.string.folder_name_format),
+        setContentDescription(String.format(getContext().getString(R.string.folder_name_format),
                 title));
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // Call the superclass onTouchEvent first, because sometimes it changes the state to
+        // isPressed() on an ACTION_UP
+        boolean result = super.onTouchEvent(event);
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mLongPressHelper.postCheckForLongPress();
+                break;
+            case MotionEvent.ACTION_CANCEL:
+            case MotionEvent.ACTION_UP:
+                mLongPressHelper.cancelLongPress();
+                break;
+        }
+        return result;
+    }
+
+    @Override
+    public void cancelLongPress() {
+        super.cancelLongPress();
+
+        mLongPressHelper.cancelLongPress();
     }
 }

@@ -20,8 +20,6 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Region;
 import android.graphics.Region.Op;
@@ -29,8 +27,6 @@ import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.widget.TextView;
-
-import com.android.launcher.R;
 
 /**
  * TextView that draws a bubble behind the text. We cannot use a LineBackgroundSpan
@@ -47,8 +43,6 @@ public class BubbleTextView extends TextView {
     static final float PADDING_H = 8.0f;
     static final float PADDING_V = 3.0f;
 
-    private Paint mPaint;
-    private float mBubbleColorAlpha;
     private int mPrevAlpha = -1;
 
     private final HolographicOutlineHelper mOutlineHelper = new HolographicOutlineHelper();
@@ -65,6 +59,7 @@ public class BubbleTextView extends TextView {
     private Drawable mBackground;
 
     private boolean mStayPressed;
+    private CheckLongPressHelper mLongPressHelper;
 
     public BubbleTextView(Context context) {
         super(context);
@@ -82,13 +77,10 @@ public class BubbleTextView extends TextView {
     }
 
     private void init() {
+        mLongPressHelper = new CheckLongPressHelper(this);
         mBackground = getBackground();
 
         final Resources res = getContext().getResources();
-        int bubbleColor = res.getColor(R.color.bubble_dark_background);
-        mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mPaint.setColor(bubbleColor);
-        mBubbleColorAlpha = Color.alpha(bubbleColor) / 255.0f;
         mFocusedOutlineColor = mFocusedGlowColor = mPressedOutlineColor = mPressedGlowColor =
             res.getColor(android.R.color.holo_blue_light);
 
@@ -107,7 +99,7 @@ public class BubbleTextView extends TextView {
 
     @Override
     protected boolean setFrame(int left, int top, int right, int bottom) {
-        if (mLeft != left || mRight != right || mTop != top || mBottom != bottom) {
+        if (getLeft() != left || getRight() != right || getTop() != top || getBottom() != bottom) {
             mBackgroundSizeChanged = true;
         }
         return super.setFrame(left, top, right, bottom);
@@ -134,7 +126,7 @@ public class BubbleTextView extends TextView {
                 mPressedOrFocusedBackground = null;
             }
             if (isFocused()) {
-                if (mLayout == null) {
+                if (getLayout() == null) {
                     // In some cases, we get focus before we have been layed out. Set the
                     // background to null so that it will get created when the view is drawn.
                     mPressedOrFocusedBackground = null;
@@ -176,6 +168,8 @@ public class BubbleTextView extends TextView {
         // The translate of scrollX and scrollY is necessary when drawing TextViews, because
         // they set scrollX and scrollY to large values to achieve centered text
         destCanvas.save();
+        destCanvas.scale(getScaleX(), getScaleY(),
+                (getWidth() + padding) / 2, (getHeight() + padding) / 2);
         destCanvas.translate(-getScrollX() + padding / 2, -getScrollY() + padding / 2);
         destCanvas.clipRect(clipRect, Op.REPLACE);
         draw(destCanvas);
@@ -222,6 +216,8 @@ public class BubbleTextView extends TextView {
                 } else {
                     mDidInvalidateForPressedState = false;
                 }
+
+                mLongPressHelper.postCheckForLongPress();
                 break;
             case MotionEvent.ACTION_CANCEL:
             case MotionEvent.ACTION_UP:
@@ -230,6 +226,8 @@ public class BubbleTextView extends TextView {
                 if (!isPressed()) {
                     mPressedOrFocusedBackground = null;
                 }
+
+                mLongPressHelper.cancelLongPress();
                 break;
         }
         return result;
@@ -244,8 +242,8 @@ public class BubbleTextView extends TextView {
     }
 
     void setCellLayoutPressedOrFocusedIcon() {
-        if (getParent() instanceof CellLayoutChildren) {
-            CellLayoutChildren parent = (CellLayoutChildren) getParent();
+        if (getParent() instanceof ShortcutAndWidgetContainer) {
+            ShortcutAndWidgetContainer parent = (ShortcutAndWidgetContainer) getParent();
             if (parent != null) {
                 CellLayout layout = (CellLayout) parent.getParent();
                 layout.setPressedOrFocusedIcon((mPressedOrFocusedBackground != null) ? this : null);
@@ -270,11 +268,11 @@ public class BubbleTextView extends TextView {
     public void draw(Canvas canvas) {
         final Drawable background = mBackground;
         if (background != null) {
-            final int scrollX = mScrollX;
-            final int scrollY = mScrollY;
+            final int scrollX = getScrollX();
+            final int scrollY = getScrollY();
 
             if (mBackgroundSizeChanged) {
-                background.setBounds(0, 0,  mRight - mLeft, mBottom - mTop);
+                background.setBounds(0, 0,  getRight() - getLeft(), getBottom() - getTop());
                 mBackgroundSizeChanged = false;
             }
 
@@ -286,12 +284,21 @@ public class BubbleTextView extends TextView {
                 canvas.translate(-scrollX, -scrollY);
             }
         }
+
+        // If text is transparent, don't draw any shadow
+        if (getCurrentTextColor() == getResources().getColor(android.R.color.transparent)) {
+            getPaint().clearShadowLayer();
+            super.draw(canvas);
+            return;
+        }
+
         // We enhance the shadow by drawing the shadow twice
         getPaint().setShadowLayer(SHADOW_LARGE_RADIUS, 0.0f, SHADOW_Y_OFFSET, SHADOW_LARGE_COLOUR);
         super.draw(canvas);
         canvas.save(Canvas.CLIP_SAVE_FLAG);
-        canvas.clipRect(mScrollX, mScrollY + getExtendedPaddingTop(), mScrollX + getWidth(),
-                mScrollY + getHeight(), Region.Op.INTERSECT);
+        canvas.clipRect(getScrollX(), getScrollY() + getExtendedPaddingTop(),
+                getScrollX() + getWidth(),
+                getScrollY() + getHeight(), Region.Op.INTERSECT);
         getPaint().setShadowLayer(SHADOW_SMALL_RADIUS, 0.0f, 0.0f, SHADOW_SMALL_COLOUR);
         super.draw(canvas);
         canvas.restore();
@@ -313,9 +320,15 @@ public class BubbleTextView extends TextView {
     protected boolean onSetAlpha(int alpha) {
         if (mPrevAlpha != alpha) {
             mPrevAlpha = alpha;
-            mPaint.setAlpha((int) (alpha * mBubbleColorAlpha));
             super.onSetAlpha(alpha);
         }
         return true;
+    }
+
+    @Override
+    public void cancelLongPress() {
+        super.cancelLongPress();
+
+        mLongPressHelper.cancelLongPress();
     }
 }

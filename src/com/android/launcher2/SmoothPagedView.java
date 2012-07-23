@@ -35,11 +35,11 @@ public abstract class SmoothPagedView extends PagedView {
 
     private Interpolator mScrollInterpolator;
 
-    private static class WorkspaceOvershootInterpolator implements Interpolator {
+    public static class OvershootInterpolator implements Interpolator {
         private static final float DEFAULT_TENSION = 1.3f;
         private float mTension;
 
-        public WorkspaceOvershootInterpolator() {
+        public OvershootInterpolator() {
             mTension = DEFAULT_TENSION;
         }
 
@@ -101,7 +101,7 @@ public abstract class SmoothPagedView extends PagedView {
         if (mScrollMode == DEFAULT_MODE) {
             mBaseLineFlingVelocity = 2500.0f;
             mFlingVelocityInfluence = 0.4f;
-            mScrollInterpolator = new WorkspaceOvershootInterpolator();
+            mScrollInterpolator = new OvershootInterpolator();
             mScroller = new Scroller(getContext(), mScrollInterpolator);
         }
     }
@@ -139,9 +139,9 @@ public abstract class SmoothPagedView extends PagedView {
         }
 
         if (settle) {
-            ((WorkspaceOvershootInterpolator) mScrollInterpolator).setDistance(screenDelta);
+            ((OvershootInterpolator) mScrollInterpolator).setDistance(screenDelta);
         } else {
-            ((WorkspaceOvershootInterpolator) mScrollInterpolator).disableSettle();
+            ((OvershootInterpolator) mScrollInterpolator).disableSettle();
         }
 
         velocity = Math.abs(velocity);
@@ -175,7 +175,7 @@ public abstract class SmoothPagedView extends PagedView {
                 final float e = (float) Math.exp((now - mSmoothingTime) / SMOOTHING_CONSTANT);
 
                 final float dx = mTouchX - mUnboundedScrollX;
-                scrollTo(Math.round(mUnboundedScrollX + dx * e), mScrollY);
+                scrollTo(Math.round(mUnboundedScrollX + dx * e), getScrollY());
                 mSmoothingTime = now;
 
                 // Keep generating points as long as we're more than 1px away from the target

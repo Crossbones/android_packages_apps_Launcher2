@@ -42,17 +42,17 @@ class LauncherAppWidgetInfo extends ItemInfo {
     int minWidth = -1;
     int minHeight = -1;
 
+    private boolean mHasNotifiedInitialWidgetSizeChanged;
+
     /**
      * View that holds this widget after it's been created.  This view isn't created
      * until Launcher knows it's needed.
      */
     AppWidgetHostView hostView = null;
 
-    /**
-     * Constructor for use with AppWidgets that haven't been instantiated yet.
-     */
-    LauncherAppWidgetInfo(ComponentName providerName) {
+    LauncherAppWidgetInfo(int appWidgetId, ComponentName providerName) {
         itemType = LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET;
+        this.appWidgetId = appWidgetId;
         this.providerName = providerName;
 
         // Since the widget isn't instantiated yet, we don't know these values. Set them to -1
@@ -61,15 +61,28 @@ class LauncherAppWidgetInfo extends ItemInfo {
         spanY = -1;
     }
 
-    LauncherAppWidgetInfo(int appWidgetId) {
-        itemType = LauncherSettings.Favorites.ITEM_TYPE_APPWIDGET;
-        this.appWidgetId = appWidgetId;
-    }
-
     @Override
     void onAddToDatabase(ContentValues values) {
         super.onAddToDatabase(values);
         values.put(LauncherSettings.Favorites.APPWIDGET_ID, appWidgetId);
+    }
+
+    /**
+     * When we bind the widget, we should notify the widget that the size has changed if we have not
+     * done so already (only really for default workspace widgets).
+     */
+    void onBindAppWidget(Launcher launcher) {
+        if (!mHasNotifiedInitialWidgetSizeChanged) {
+            notifyWidgetSizeChanged(launcher);
+        }
+    }
+
+    /**
+     * Trigger an update callback to the widget to notify it that its size has changed.
+     */
+    void notifyWidgetSizeChanged(Launcher launcher) {
+        AppWidgetResizeFrame.updateWidgetSizeRanges(hostView, launcher, spanX, spanY);
+        mHasNotifiedInitialWidgetSizeChanged = true;
     }
 
     @Override

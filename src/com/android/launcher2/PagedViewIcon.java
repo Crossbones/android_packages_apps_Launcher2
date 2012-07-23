@@ -16,43 +16,29 @@
 
 package com.android.launcher2;
 
-import android.animation.ObjectAnimator;
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.util.AttributeSet;
-import android.widget.Checkable;
 import android.widget.TextView;
-
-import com.android.launcher.R;
-
 
 /**
  * An icon on a PagedView, specifically for items in the launcher's paged view (with compound
  * drawables on the top).
  */
-public class PagedViewIcon extends TextView implements Checkable {
+public class PagedViewIcon extends TextView {
+    /** A simple callback interface to allow a PagedViewIcon to notify when it has been pressed */
+    public static interface PressedCallback {
+        void iconPressed(PagedViewIcon icon);
+    }
+
+    @SuppressWarnings("unused")
     private static final String TAG = "PagedViewIcon";
+    private static final float PRESS_ALPHA = 0.4f;
 
-    // holographic outline
-    private final Paint mPaint = new Paint();
-    private Bitmap mCheckedOutline;
-    private Bitmap mHolographicOutline;
+    private PagedViewIcon.PressedCallback mPressedCallback;
+    private boolean mLockDrawableState = false;
+
     private Bitmap mIcon;
-
-    private int mAlpha = 255;
-    private int mHolographicAlpha;
-
-    private boolean mIsChecked;
-    private ObjectAnimator mCheckedAlphaAnimator;
-    private float mCheckedAlpha = 1.0f;
-    private int mCheckedFadeInDuration;
-    private int mCheckedFadeOutDuration;
-
-    HolographicPagedViewIcon mHolographicOutlineView;
-    private HolographicOutlineHelper mHolographicOutlineHelper;
 
     public PagedViewIcon(Context context) {
         this(context, null);
@@ -64,131 +50,43 @@ public class PagedViewIcon extends TextView implements Checkable {
 
     public PagedViewIcon(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-
-        // Set up fade in/out constants
-        final Resources r = context.getResources();
-        final int alpha = r.getInteger(R.integer.config_dragAppsCustomizeIconFadeAlpha);
-        if (alpha > 0) {
-            mCheckedAlpha = r.getInteger(R.integer.config_dragAppsCustomizeIconFadeAlpha) / 256.0f;
-            mCheckedFadeInDuration =
-                r.getInteger(R.integer.config_dragAppsCustomizeIconFadeInDuration);
-            mCheckedFadeOutDuration =
-                r.getInteger(R.integer.config_dragAppsCustomizeIconFadeOutDuration);
-        }
-
-        mHolographicOutlineView = new HolographicPagedViewIcon(context, this);
-    }
-
-    protected HolographicPagedViewIcon getHolographicOutlineView() {
-        return mHolographicOutlineView;
-    }
-
-    protected Bitmap getHolographicOutline() {
-        return mHolographicOutline;
     }
 
     public void applyFromApplicationInfo(ApplicationInfo info, boolean scaleUp,
-            HolographicOutlineHelper holoOutlineHelper) {
-        mHolographicOutlineHelper = holoOutlineHelper;
+            PagedViewIcon.PressedCallback cb) {
         mIcon = info.iconBitmap;
+        mPressedCallback = cb;
         setCompoundDrawablesWithIntrinsicBounds(null, new FastBitmapDrawable(mIcon), null, null);
         setText(info.title);
         setTag(info);
     }
 
-    public void setHolographicOutline(Bitmap holoOutline) {
-        mHolographicOutline = holoOutline;
-        getHolographicOutlineView().invalidate();
+    public void lockDrawableState() {
+        mLockDrawableState = true;
     }
 
-    @Override
-    public void setAlpha(float alpha) {
-        final float viewAlpha = HolographicOutlineHelper.viewAlphaInterpolator(alpha);
-        final float holographicAlpha = HolographicOutlineHelper.highlightAlphaInterpolator(alpha);
-        int newViewAlpha = (int) (viewAlpha * 255);
-        int newHolographicAlpha = (int) (holographicAlpha * 255);
-        if ((mAlpha != newViewAlpha) || (mHolographicAlpha != newHolographicAlpha)) {
-            mAlpha = newViewAlpha;
-            mHolographicAlpha = newHolographicAlpha;
-            super.setAlpha(viewAlpha);
-        }
-    }
-
-    public void invalidateCheckedImage() {
-        if (mCheckedOutline != null) {
-            mCheckedOutline.recycle();
-            mCheckedOutline = null;
-        }
-    }
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        if (mAlpha > 0) {
-            super.onDraw(canvas);
-        }
-
-        Bitmap overlay = null;
-
-        // draw any blended overlays
-        if (mCheckedOutline != null) {
-            mPaint.setAlpha(255);
-            overlay = mCheckedOutline;
-        }
-
-        if (overlay != null) {
-            final int offset = getScrollX();
-            final int compoundPaddingLeft = getCompoundPaddingLeft();
-            final int compoundPaddingRight = getCompoundPaddingRight();
-            int hspace = getWidth() - compoundPaddingRight - compoundPaddingLeft;
-            canvas.drawBitmap(overlay,
-                    offset + compoundPaddingLeft + (hspace - overlay.getWidth()) / 2,
-                    mPaddingTop,
-                    mPaint);
-        }
-    }
-
-    @Override
-    public boolean isChecked() {
-        return mIsChecked;
-    }
-
-    void setChecked(boolean checked, boolean animate) {
-        if (mIsChecked != checked) {
-            mIsChecked = checked;
-
-            float alpha;
-            int duration;
-            if (mIsChecked) {
-                alpha = mCheckedAlpha;
-                duration = mCheckedFadeInDuration;
-            } else {
-                alpha = 1.0f;
-                duration = mCheckedFadeOutDuration;
+    public void resetDrawableState() {
+        mLockDrawableState = false;
+        post(new Runnable() {
+            @Override
+            public void run() {
+                refreshDrawableState();
             }
+        });
+    }
 
-            // Initialize the animator
-            if (mCheckedAlphaAnimator != null) {
-                mCheckedAlphaAnimator.cancel();
-            }
-            if (animate) {
-                mCheckedAlphaAnimator = ObjectAnimator.ofFloat(this, "alpha", getAlpha(), alpha);
-                mCheckedAlphaAnimator.setDuration(duration);
-                mCheckedAlphaAnimator.start();
-            } else {
-                setAlpha(alpha);
-            }
+    protected void drawableStateChanged() {
+        super.drawableStateChanged();
 
-            invalidate();
+        // We keep in the pressed state until resetDrawableState() is called to reset the press
+        // feedback
+        if (isPressed()) {
+            setAlpha(PRESS_ALPHA);
+            if (mPressedCallback != null) {
+                mPressedCallback.iconPressed(this);
+            }
+        } else if (!mLockDrawableState) {
+            setAlpha(1f);
         }
-    }
-
-    @Override
-    public void setChecked(boolean checked) {
-        setChecked(checked, true);
-    }
-
-    @Override
-    public void toggle() {
-        setChecked(!mIsChecked);
     }
 }

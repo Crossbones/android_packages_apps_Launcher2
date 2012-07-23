@@ -17,26 +17,83 @@
 package com.android.launcher2;
 
 import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ContentResolver;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.widget.Toast;
 
-import java.net.URISyntaxException;
-
 import com.android.launcher.R;
+
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 public class UninstallShortcutReceiver extends BroadcastReceiver {
     private static final String ACTION_UNINSTALL_SHORTCUT =
             "com.android.launcher.action.UNINSTALL_SHORTCUT";
+
+    // The set of shortcuts that are pending uninstall
+    private static ArrayList<PendingUninstallShortcutInfo> mUninstallQueue =
+            new ArrayList<PendingUninstallShortcutInfo>();
+
+    // Determines whether to defer uninstalling shortcuts immediately until
+    // disableAndFlushUninstallQueue() is called.
+    private static boolean mUseUninstallQueue = false;
+
+    private static class PendingUninstallShortcutInfo {
+        Intent data;
+
+        public PendingUninstallShortcutInfo(Intent rawData) {
+            data = rawData;
+        }
+    }
 
     public void onReceive(Context context, Intent data) {
         if (!ACTION_UNINSTALL_SHORTCUT.equals(data.getAction())) {
             return;
         }
 
+        PendingUninstallShortcutInfo info = new PendingUninstallShortcutInfo(data);
+        if (mUseUninstallQueue) {
+            mUninstallQueue.add(info);
+        } else {
+            processUninstallShortcut(context, info);
+        }
+    }
+
+    static void enableUninstallQueue() {
+        mUseUninstallQueue = true;
+    }
+
+    static void disableAndFlushUninstallQueue(Context context) {
+        mUseUninstallQueue = false;
+        Iterator<PendingUninstallShortcutInfo> iter = mUninstallQueue.iterator();
+        while (iter.hasNext()) {
+            processUninstallShortcut(context, iter.next());
+            iter.remove();
+        }
+    }
+
+    private static void processUninstallShortcut(Context context,
+            PendingUninstallShortcutInfo pendingInfo) {
+        String spKey = LauncherApplication.getSharedPreferencesKey();
+        SharedPreferences sharedPrefs = context.getSharedPreferences(spKey, Context.MODE_PRIVATE);
+
+        final Intent data = pendingInfo.data;
+
+        LauncherApplication app = (LauncherApplication) context.getApplicationContext();
+        synchronized (app) {
+            removeShortcut(context, data, sharedPrefs);
+        }
+    }
+
+    private static void removeShortcut(Context context, Intent data,
+            final SharedPreferences sharedPrefs) {
         Intent intent = data.getParcelableExtra(Intent.EXTRA_SHORTCUT_INTENT);
         String name = data.getStringExtra(Intent.EXTRA_SHORTCUT_NAME);
         boolean duplicate = data.getBooleanExtra(Launcher.EXTRA_SHORTCUT_DUPLICATE, true);
@@ -76,6 +133,33 @@ public class UninstallShortcutReceiver extends BroadcastReceiver {
                 cr.notifyChange(LauncherSettings.Favorites.CONTENT_URI, null);
                 Toast.makeText(context, context.getString(R.string.shortcut_uninstalled, name),
                         Toast.LENGTH_SHORT).show();
+            }
+
+            // Remove any items due to be animated
+            boolean appRemoved;
+            Set<String> newApps = new HashSet<String>();
+            newApps = sharedPrefs.getStringSet(InstallShortcutReceiver.NEW_APPS_LIST_KEY, newApps);
+            synchronized (newApps) {
+                do {
+                    appRemoved = newApps.remove(intent.toUri(0).toString());
+                } while (appRemoved);
+            }
+            if (appRemoved) {
+                final Set<String> savedNewApps = newApps;
+                new Thread("setNewAppsThread-remove") {
+                    public void run() {
+                        synchronized (savedNewApps) {
+                            SharedPreferences.Editor editor = sharedPrefs.edit();
+                            editor.putStringSet(InstallShortcutReceiver.NEW_APPS_LIST_KEY,
+                                    savedNewApps);
+                            if (savedNewApps.isEmpty()) {
+                                // Reset the page index if there are no more items
+                                editor.putInt(InstallShortcutReceiver.NEW_APPS_PAGE_KEY, -1);
+                            }
+                            editor.commit();
+                        }
+                    }
+                }.start();
             }
         }
     }

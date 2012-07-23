@@ -26,6 +26,8 @@ import android.content.res.Configuration;
 import android.database.ContentObserver;
 import android.os.Handler;
 
+import com.android.launcher.R;
+
 import java.lang.ref.WeakReference;
 
 public class LauncherApplication extends Application {
@@ -33,6 +35,8 @@ public class LauncherApplication extends Application {
     public IconCache mIconCache;
     private static boolean sIsScreenLarge;
     private static float sScreenDensity;
+    private static int sLongPressTimeout = 300;
+    private static final String sSharedPreferencesKey = "com.android.launcher2.prefs";
     WeakReference<LauncherProvider> mLauncherProvider;
 
     @Override
@@ -40,10 +44,7 @@ public class LauncherApplication extends Application {
         super.onCreate();
 
         // set sIsScreenXLarge and sScreenDensity *before* creating icon cache
-        final int screenSize = getResources().getConfiguration().screenLayout &
-                Configuration.SCREENLAYOUT_SIZE_MASK;
-        sIsScreenLarge = screenSize == Configuration.SCREENLAYOUT_SIZE_LARGE ||
-            screenSize == Configuration.SCREENLAYOUT_SIZE_XLARGE;
+        sIsScreenLarge = getResources().getBoolean(R.bool.is_large_screen);
         sScreenDensity = getResources().getDisplayMetrics().density;
 
         mIconCache = new IconCache(this);
@@ -93,7 +94,10 @@ public class LauncherApplication extends Application {
     private final ContentObserver mFavoritesObserver = new ContentObserver(new Handler()) {
         @Override
         public void onChange(boolean selfChange) {
-            mModel.startLoader(LauncherApplication.this, false);
+            // If the database has ever changed, then we really need to force a reload of the
+            // workspace on the next load
+            mModel.resetLoadedState(false, true);
+            mModel.startLoaderFromBackground();
         }
     };
 
@@ -118,6 +122,10 @@ public class LauncherApplication extends Application {
         return mLauncherProvider.get();
     }
 
+    public static String getSharedPreferencesKey() {
+        return sSharedPreferencesKey;
+    }
+
     public static boolean isScreenLarge() {
         return sIsScreenLarge;
     }
@@ -129,5 +137,9 @@ public class LauncherApplication extends Application {
 
     public static float getScreenDensity() {
         return sScreenDensity;
+    }
+
+    public static int getLongPressTimeout() {
+        return sLongPressTimeout;
     }
 }

@@ -23,7 +23,6 @@ package com.android.launcher2;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.TimeAnimator;
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -31,6 +30,7 @@ import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.os.Handler;
+import android.support.v13.dreams.BasicDream;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.MotionEvent;
@@ -44,7 +44,7 @@ import com.android.launcher.R;
 import java.util.HashMap;
 import java.util.Random;
 
-public class RocketLauncher extends Activity {
+public class RocketLauncher extends BasicDream {
     public static final boolean ROCKET_LAUNCHER = true;
 
     public static class Board extends FrameLayout
@@ -332,7 +332,7 @@ public class RocketLauncher extends Activity {
         protected void onAttachedToWindow() {
             super.onAttachedToWindow();
             setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
+            setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
 
             reset();
             mAnim.start();

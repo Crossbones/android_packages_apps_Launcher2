@@ -82,14 +82,25 @@ public class WallpaperChooserDialogFragment extends DialogFragment implements
         outState.putBoolean(EMBEDDED_KEY, mEmbedded);
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-
+    private void cancelLoader() {
         if (mLoader != null && mLoader.getStatus() != WallpaperLoader.Status.FINISHED) {
             mLoader.cancel(true);
             mLoader = null;
         }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+
+        cancelLoader();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        cancelLoader();
     }
 
     @Override
@@ -112,26 +123,6 @@ public class WallpaperChooserDialogFragment extends DialogFragment implements
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         findWallpapers();
 
-        // TODO: The following code is not exercised right now and may be removed
-        // if the dialog version is not needed.
-        /*
-        final View v = getActivity().getLayoutInflater().inflate(
-                R.layout.wallpaper_chooser, null, false);
-
-        GridView gridView = (GridView) v.findViewById(R.id.gallery);
-        gridView.setOnItemClickListener(this);
-        gridView.setAdapter(new ImageAdapter(getActivity()));
-
-        final int viewInset =
-                getResources().getDimensionPixelSize(R.dimen.alert_dialog_content_inset);
-        
-        FrameLayout wallPaperList = (FrameLayout) v.findViewById(R.id.wallpaper_list);
-        AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setNegativeButton(R.string.wallpaper_cancel, null);
-        builder.setTitle(R.string.wallpaper_dialog_title);
-        builder.setView(wallPaperList,
-        viewInset, viewInset, viewInset, viewInset); return builder.create();
-        */
         return null;
     }
 
@@ -146,7 +137,7 @@ public class WallpaperChooserDialogFragment extends DialogFragment implements
          */
         if (mEmbedded) {
             View view = inflater.inflate(R.layout.wallpaper_chooser, container, false);
-            view.setBackgroundDrawable(mWallpaperDrawable);
+            view.setBackground(mWallpaperDrawable);
 
             final Gallery gallery = (Gallery) view.findViewById(R.id.gallery);
             gallery.setCallbackDuringFling(false);

@@ -93,10 +93,20 @@ class ShortcutInfo extends ItemInfo {
 
     public Bitmap getIcon(IconCache iconCache) {
         if (mIcon == null) {
-            mIcon = iconCache.getIcon(this.intent);
-            this.usingFallbackIcon = iconCache.isDefaultIcon(mIcon);
+            updateIcon(iconCache);
         }
         return mIcon;
+    }
+
+    /** Returns the package name that the shortcut's intent will resolve to, or an empty string if
+     *  none exists. */
+    String getPackageName() {
+        return super.getPackageName(intent);
+    }
+
+    public void updateIcon(IconCache iconCache) {
+        mIcon = iconCache.getIcon(intent);
+        usingFallbackIcon = iconCache.isDefaultIcon(mIcon);
     }
 
     /**
@@ -145,7 +155,10 @@ class ShortcutInfo extends ItemInfo {
 
     @Override
     public String toString() {
-        return "ShortcutInfo(title=" + title.toString() + ")";
+        return "ShortcutInfo(title=" + title.toString() + "intent=" + intent + "id=" + this.id
+                + " type=" + this.itemType + " container=" + this.container + " screen=" + screen
+                + " cellX=" + cellX + " cellY=" + cellY + " spanX=" + spanX + " spanY=" + spanY
+                + " isGesture=" + isGesture + " dropPos=" + dropPos + ")";
     }
 
     public static void dumpShortcutInfoList(String tag, String label,

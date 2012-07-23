@@ -21,8 +21,6 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.TransitionDrawable;
 import android.util.AttributeSet;
 import android.view.View;
@@ -34,7 +32,6 @@ public class InfoDropTarget extends ButtonDropTarget {
 
     private ColorStateList mOriginalTextColor;
     private TransitionDrawable mDrawable;
-    private int mHoverColor = 0xFF0000FF;
 
     public InfoDropTarget(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
@@ -53,9 +50,7 @@ public class InfoDropTarget extends ButtonDropTarget {
         // Get the hover color
         Resources r = getResources();
         mHoverColor = r.getColor(R.color.info_target_hover_tint);
-        mHoverPaint.setColorFilter(new PorterDuffColorFilter(
-                mHoverColor, PorterDuff.Mode.SRC_ATOP));
-        mDrawable = (TransitionDrawable) getCompoundDrawables()[0];
+        mDrawable = (TransitionDrawable) getCurrentDrawable();
         mDrawable.setCrossFadeEnabled(true);
 
         // Remove the text in the Phone UI in landscape
@@ -67,8 +62,8 @@ public class InfoDropTarget extends ButtonDropTarget {
         }
     }
 
-    private boolean isAllAppsApplication(DragSource source, Object info) {
-        return (source instanceof AppsCustomizePagedView) && (info instanceof ApplicationInfo);
+    private boolean isFromAllApps(DragSource source) {
+        return (source instanceof AppsCustomizePagedView);
     }
 
     @Override
@@ -81,10 +76,15 @@ public class InfoDropTarget extends ButtonDropTarget {
             componentName = ((ApplicationInfo) d.dragInfo).componentName;
         } else if (d.dragInfo instanceof ShortcutInfo) {
             componentName = ((ShortcutInfo) d.dragInfo).intent.getComponent();
+        } else if (d.dragInfo instanceof PendingAddItemInfo) {
+            componentName = ((PendingAddItemInfo) d.dragInfo).componentName;
         }
         if (componentName != null) {
             mLauncher.startApplicationDetailsActivity(componentName);
         }
+
+        // There is no post-drop animation, so clean up the DragView now
+        d.deferDragViewCleanupPostAnimation = false;
         return false;
     }
 
@@ -92,8 +92,8 @@ public class InfoDropTarget extends ButtonDropTarget {
     public void onDragStart(DragSource source, Object info, int dragAction) {
         boolean isVisible = true;
 
-        // If we are dragging a widget or shortcut, hide the info target
-        if (!isAllAppsApplication(source, info)) {
+        // Hide this button unless we are dragging something from AllApps
+        if (!isFromAllApps(source)) {
             isVisible = false;
         }
 
