@@ -21,17 +21,17 @@
     <!-- General -->
     <skip />
     <!-- Application name -->
-    <string name="application_name">Launcher</string>
+    <string name="application_name">Launcher2</string>
     <!-- Accessibility-facing application name -->
     <string name="home">Home</string>
     <!-- Name for all applications running as this uid. -->
-    <string name="uid_name">Android Core Apps</string>
+    <string name="uid_name">Android Default Apps</string>
     <!-- Default folder name -->
     <string name="folder_name"></string>
     <!-- Title of dialog that appears after user selects Wallpaper from menu -->
     <string name="chooser_wallpaper">Choose wallpaper from</string>
     <!-- Button label on Wallpaper Gallery screen; user selects this button to set a specific wallpaper -->
-    <string name="wallpaper_instructions">Set wallpaper</string>
+    <string name="wallpaper_instructions">Set the wallpaper</string>
     <!-- Option in "Select wallpaper from" dialog box -->
     <string name="pick_wallpaper">Wallpapers</string>
     <!-- Displayed when user selects a shortcut for an app that was uninstalled [CHAR_LIMIT=none]-->
@@ -64,7 +64,7 @@
     <!-- Label of Folder name field in Rename folder dialog box -->
     <string name="rename_folder_label">Folder name</string>
     <!-- Title of dialog box -->
-    <string name="rename_folder_title">Rename folder</string>
+    <string name="rename_folder_title">Rename the folder</string>
     <!-- Buttons in Rename folder dialog box -->
     <string name="rename_action">OK</string>
     <!-- Buttons in Rename folder dialog box -->
@@ -86,7 +86,7 @@ s -->
     <!-- Error message when user has filled all their home screens -->
     <string name="completely_out_of_space">No more room on your Home screens.</string>
     <!-- Error message when user has filled a home screen -->
-    <string name="out_of_space">No more room on this Home screen.</string>
+    <string name="out_of_space">No more room on this page.</string>
     <!-- Error message when user has filled the hotseat -->
     <string name="hotseat_out_of_space">No more room on the hotseat.</string>
     <!-- Error message when user tries to drop an invalid item on the hotseat -->
@@ -185,12 +185,12 @@ s -->
     <string name="permdesc_uninstall_shortcut">Allows the app to remove
         shortcuts without user intervention.</string>
     <!-- Permission short label -->
-    <string name="permlab_read_settings">read Home settings and shortcuts</string>
+    <string name="permlab_read_settings">Read Home settings and shortcuts</string>
     <!-- Permission description -->
     <string name="permdesc_read_settings">Allows the app to read the settings and
         shortcuts in Home.</string>
     <!-- Permission short label -->
-    <string name="permlab_write_settings">write Home settings and shortcuts</string>
+    <string name="permlab_write_settings">Write Home settings and shortcuts</string>
     <!-- Permission description -->
     <string name="permdesc_write_settings">Allows the app to change the settings and
         shortcuts in Home.</string>
@@ -199,7 +199,7 @@ s -->
     <skip />    
 
     <!-- Text to show user in place of a gadget when we can't display it properly -->
-    <string name="gadget_error_text">Problem loading widget</string>
+    <string name="gadget_error_text">Problem loading the widget</string>
 
     <!-- Text to inform the user that they can't uninstall a system application -->
     <string name="uninstall_system_app_text">This is a system app and can\'t be uninstalled.</string>
@@ -227,11 +227,11 @@ s -->
 
     <!-- Clings -->
     <!-- The title text for the workspace cling [CHAR_LIMIT=none] -->
-    <string name="workspace_cling_title">Make yourself at home</string>
+    <string name="workspace_cling_title">Make yourself at home! Stick with us for a while.</string>
     <!-- The description of how to use the workspace [CHAR_LIMIT=none] -->
     <string name="workspace_cling_move_item">You can put your favorite apps here.</string>
     <!-- The description of how to open all apps from the workspace [CHAR_LIMIT=none] -->
-    <string name="workspace_cling_open_all_apps">To see all your apps, touch the circle.</string>
+    <string name="workspace_cling_open_all_apps">To see all your apps, touch the lovely circle.</string>
     <!-- The title text for the All Apps cling [CHAR_LIMIT=none] -->
     <string name="all_apps_cling_title">Choose some apps</string>
     <!-- The description of how to pick up and add an item to the workspace [CHAR_LIMIT=none] -->
